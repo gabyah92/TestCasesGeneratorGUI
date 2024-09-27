@@ -1,59 +1,726 @@
-"""
-        Aashutosh Rathi
-https://github.com/aashutoshrathi/
-Testcase Generator for HackerRank, HackerEarth and CodeChef
-
-Usage: Run 'python tc_gen.py' and follow the prompt to select
-language and platform for testcase generation.
-
-To change input file logic, go to the line with the comment
-"# Input area will start here" and edit the lines below, according
-to the pattern you want.
-"""
-
-__all__ = ['DIRNAME', 'IN_SOURCE', 'OUT_SOURCE', 'POWER', 'RINT', 'TC_SOURCE', 'generate',
-           'compile_them', 'zip_codechef', 'zip_hackerrank', 'zip_hackerearth', 'zip_them',
-           'check_empty', 'make_dirs', 'Error', 'EmptyFileException', 'CompilationError',
-           'RunError', 'ValueOutsideRange', 'make_lf_ending']
-
+import time
 import math
-import os
 import random
 import shutil
 import sys
 import timeit
+import webbrowser
 import zipfile
 import subprocess
-
+from io import StringIO
+from PIL import Image
 from tc_generator.lang_compiler import LANGS
+import customtkinter as ctk
+import os
+import threading
+from datetime import datetime
+
+
+code = str()
+language_value = 1
+platform_value = 1
+chk = False
+inputs = list()
+outputs = list()
+times = list()
+max_time = 0
+program_name = str()
+program_type = int()
+tags = list()
+description = str()
+constraints = str()
+in1, out1, in2, out2, in3, out3 = [""]*6
+
+
+
+
+# Create the main application window
+app = ctk.CTk()
+app.title("Test Cases Generator GUI")
+app.iconbitmap('_internal\\icons\\logo.ico')
+width = 1500
+height = 750
+screenwidth = app.winfo_screenwidth()
+screenheight = app.winfo_screenheight()
+alignstr = '%dx%d+%d+%d' % (width, height, (screenwidth - width) / 2, (screenheight - height) / 2)
+app.geometry(alignstr)
+app.minsize(1200, 500)
+#app.resizable(width=False, height=False)
+app.grid_rowconfigure(1, weight=1)
+app.grid_columnconfigure(0, weight=1)
+app.grid_columnconfigure(1, weight=1)
+app.grid_columnconfigure(2, weight=1)
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
+
+def resource_path2(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    # Determine base path during runtime
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+
+    # Define the generated directory
+    generated_dir = os.path.join(base_path, 'generated')
+
+    # Create the directory if it does not exist
+    if not os.path.exists(generated_dir):
+        os.makedirs(generated_dir)
+
+    return os.path.join(generated_dir, relative_path)
+
+
+app.protocol("WM_DELETE_WINDOW", lambda : sys.exit(0))
+# Configure grid weight for responsiveness
+
+
+# Set colors and styles
+ctk.set_appearance_mode("dark")  # Modes: "System" (default), "Light", "Dark"
+ctk.set_default_color_theme("dark-blue")  # Customize color theme
+
+
+# Python Code Input
+ctk.CTkLabel(app, text_color='orange', text="Python Code", font=("sans", 25, "bold"),
+             anchor="center").grid(row=0, column=1, padx=20, pady=10)
+python_code_entry = ctk.CTkTextbox(app, width=300, height=200, font=("sans", 20, "bold"),
+                                   wrap='none')
+python_code_entry.grid(row=1, column=1, padx=20, pady=10, sticky="nsew")
+
+# Logic Code Input
+ctk.CTkLabel(app, text_color='orange', text="Logic Code", font=("sans", 25, "bold"),
+             anchor="center").grid(row=0, column=0, padx=20, pady=10)
+logic_code_entry = ctk.CTkTextbox(app, width=300, height=200, font=("sans", 20, "bold"),
+                                  wrap='none')
+logic_code_entry.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
+
+# Language selection dropdown
+ctk.CTkLabel(app, text="Logic Code Language: ", font=("sans", 30, "bold")).grid(row=2, column=0,
+                                                                                padx=10)
+language_selection = ctk.CTkOptionMenu(app, width=100,
+                                     values=["Java", "C", "Python", "C++", "C#", "Go"],
+                                     state="readonly", font=("sans", 30, "bold"), fg_color='steelblue',
+                                     dropdown_font=("sans", 60, "bold"),  bg_color='black', text_color='black', dynamic_resizing=False )
+language_selection.grid(row=2, column=1, padx=12, pady=30, sticky='nsew' )
+language_selection.set("Java")
+
+# Test Cases Input
+ctk.CTkLabel(app, text="Number Of Test Cases: ", font=("sans", 30, "bold")).grid(row=3, column=0,
+                                                                                 padx=10)
+num_test_cases_entry = ctk.CTkEntry(app, width=100, font=("sans", 30, "bold"))
+num_test_cases_entry.grid(row=3, column=1, padx=10, pady=10, sticky='nsew' )
+num_test_cases_entry.insert(0, 10)
+
+# Platform selection dropdown
+ctk.CTkLabel(app, text="Choose Your Platform: ", font=("sans", 30, "bold")).grid(row=4, column=0,
+                                                                                 padx=10)
+platform_selection = ctk.CTkOptionMenu(app, width=100, values=["HackerRank", "CodeRunner", "VPL", "HackerEarth",
+                                            "CodeChef"], font=("sans", 30, "bold"), fg_color='steelblue',
+                                            dropdown_font=("sans", 50, "bold"), bg_color='black', text_color='black', dynamic_resizing=False)
+platform_selection.grid(row=4, column=1, padx=10, pady=10, sticky='nsew'  )
+platform_selection.set("HackerRank")
+
+
+progress_root = None
+progress_label = None
+progress_inputs = None
+progress_outputs = None
+progress_bar = None
+firstchk = False
+entry = None
+taginp = None
+samplein1, samplein2, samplein3, sampleout1, sampleout2, sampleout3 = [None] * 6
+consinp, conslab, deslab, descriptioninp, proglab, progtype, inplab = [None]*7
+ok_button = None
+input_window = None
+
+def show_error(message):
+    error_window = ctk.CTkToplevel(app)  # Create a new window
+    error_window.title("Alert!")
+    error_window.after(250, lambda: error_window.iconbitmap('_internal\\icons\\logo.ico'))
+    height = 100
+    width = 500
+    screenwidth = app.winfo_screenwidth()
+    screenheight = app.winfo_screenheight()
+    alignstr = '%dx%d+%d+%d' % (
+        width, height, (screenwidth - width) / 2, (screenheight - height) / 2)
+    error_window.geometry(alignstr)
+    error_window.resizable(width=False, height=False)
+    error_window.grab_set()  # Modal window
+
+    label = ctk.CTkLabel(error_window, text=message, padx=20, pady=10, font=('sans', 15, 'bold'))
+    label.pack()
+
+    ok_button = ctk.CTkButton(error_window, text="OK", command=error_window.destroy,
+                              font=('sans', 15, 'bold'))
+    ok_button.pack(pady=10, padx=10)
+
+def description_make():
+    global description, constraints, in1, in2, in3, out1, out2, out3
+    description += "<h2>Sample TestCases:</h2>\n\n"
+    description += "<b>Sample Input 1:</b>\n<p>"+str(in1).rstrip()+"</p>\n<b>Sample Output 1:</b>\n<p>"+str(out1).rstrip()+"</p>\n\n"
+    description += "<b>Sample Input 2:</b>\n<p>" + str(in2).rstrip() + "</p>\n<b>Sample Output 2:</b>\n<p>" + str(out2).rstrip() + "</p>\n\n"
+    description += "<b>Sample Input 3:</b>\n<p>" + str(in3).rstrip() + "</p>\n<b>Sample Output 3:</b>\n<p>" + str(out3).rstrip() + "</p>\n\n</p>"
+    description += constraints
+
+def get_program_details():
+    global program_name, firstchk, entry
+    global taginp, samplein1, samplein2, samplein3, sampleout1, sampleout3
+    global consinp, conslab, deslab, descriptioninp, proglab, progtype, inplab
+    global ok_button, input_window
+    def display_cases():
+        global inplab, entry, samplein1, samplein2, samplein3, sampleout1, sampleout2, sampleout3
+
+        ctk.CTkLabel(input_window, text="Sample Input 1", pady=40,
+                     font=('sans', 18, 'bold'), anchor='e').grid(row=1, column=0, padx=10, pady=5)
+        ctk.CTkLabel(input_window, text="Sample Output 1", pady=40,
+                     font=('sans', 18, 'bold'), anchor='e').grid(row=3, column=0, padx=10, pady=5)
+
+        ctk.CTkLabel(input_window, text="Sample Input 2", pady=40,
+                     font=('sans', 18, 'bold'), anchor='e').grid(row=1, column=1, padx=10, pady=5)
+        ctk.CTkLabel(input_window, text="Sample Output 2", pady=40,
+                     font=('sans', 18, 'bold'), anchor='e').grid(row=3, column=1, padx=10, pady=5)
+
+        ctk.CTkLabel(input_window, text="Sample Input 3", pady=40,
+                     font=('sans', 18, 'bold'), anchor='e').grid(row=1, column=2, padx=10, pady=5)
+        ctk.CTkLabel(input_window, text="Sample Output 3", pady=40,
+                     font=('sans', 18, 'bold'), anchor='e').grid(row=3, column=2, padx=10, pady=5)
+
+        samplein3 = ctk.CTkTextbox(input_window, width=300, height=200, font=("sans", 20, "bold"),
+                                   wrap='none')
+        samplein3.grid(row=2, column=2, sticky="nsew", pady=10, padx=10)
+
+        sampleout3 = ctk.CTkTextbox(input_window, width=300, height=200, font=("sans", 20, "bold"),
+                                    wrap='none')
+        sampleout3.grid(row=4, column=2, sticky="nsew", pady=10, padx=10)
+
+        samplein2 = ctk.CTkTextbox(input_window, width=300, height=200, font=("sans", 20, "bold"),
+                                   wrap='none')
+        samplein2.grid(row=2, column=1, sticky="nsew", pady=10, padx=10)
+
+        sampleout2 = ctk.CTkTextbox(input_window, width=300, height=200, font=("sans", 20, "bold"),
+                                    wrap='none')
+        sampleout2.grid(row=4, column=1, sticky="nsew", pady=10, padx=10)
+
+        samplein1 = ctk.CTkTextbox(input_window, width=300, height=200, font=("sans", 20, "bold"),
+                                   wrap='none')
+        samplein1.grid(row=2, column=0, sticky="nsew", pady=10, padx=10)
+
+        sampleout1 = ctk.CTkTextbox(input_window, width=300, height=200, font=("sans", 20, "bold"),
+                                    wrap='none')
+        sampleout1.grid(row=4, column=0, sticky="nsew", pady=10, padx=10)
+
+    def display_window2():
+        global taginp, ok_button
+        ok_button = ctk.CTkButton(input_window, text="OK", width=300, height=40, command=on_ok,
+                                  font=('sans', 15, 'bold'))
+        ok_button.grid(pady=10, padx=10, row=0, column=2)
+
+        ctk.CTkLabel(input_window, text="Enter program tags(,): ", padx=10, pady=52,
+                     font=('sans', 18, 'bold')).grid(row=0, column=0)
+        taginp = ctk.CTkEntry(input_window, width=300, font=('sans', 18, 'bold'))
+        taginp.grid(row=0, column=1)
+    input_window = ctk.CTkToplevel(app)  # Create a new window
+    input_window.title("Enter program Details")
+    input_window.after(250, lambda: input_window.iconbitmap('_internal\\icons\\logo.ico'))
+    height = 750
+    width = 1000
+    screenwidth = app.winfo_screenwidth()
+    screenheight = app.winfo_screenheight()
+    alignstr = '%dx%d+%d+%d' % (
+        width, height, (screenwidth - width) / 2, (screenheight - height) / 2)
+    input_window.geometry(alignstr)
+    input_window.resizable(width=False, height=False)
+
+    input_window.grab_set()  # Modal window
+    inplab = ctk.CTkLabel(input_window, text="Program Name:", padx=10, pady=10,
+                          font=('sans', 18, 'bold'), anchor='e')
+    inplab.grid(row=0, column=0)
+    entry = ctk.CTkEntry(input_window, width=750, height=50, font=('sans', 20, 'bold'))
+    entry.grid(row=0, column=1, padx=10, pady=10)
+
+    deslab = ctk.CTkLabel(input_window, text="Problem Statement:", pady=40,
+                          font=('sans', 18, 'bold'), anchor='e')
+    deslab.grid(row=1, column=0, padx=10, pady=5)
+    descriptioninp = ctk.CTkTextbox(input_window, width=500, height=300, font=("sans", 20, "bold"))
+    descriptioninp.grid(row=1, column=1, sticky="nsew", pady=10, padx=10)
+
+    conslab = ctk.CTkLabel(input_window, text="Constraints:", pady=40, font=('sans', 18, 'bold'), anchor='e')
+    conslab.grid(row=2, column=0, padx=10, pady=5)
+    consinp = ctk.CTkTextbox(input_window, width=500, height=150, font=("sans", 20, "bold"), wrap='none')
+    consinp.grid(row=2, column=1, sticky="nsew", pady=10, padx=10)
+
+    proglab = ctk.CTkLabel(input_window, text="Program Type:", pady=40, font=('sans', 18, 'bold'), anchor='e')
+    proglab.grid(row=3, column=0, padx=10, pady=5)
+    progtype = ctk.CTkOptionMenu(input_window, width=750, height=50,
+                                 values=["multilanguage", "language specific"], state="readonly",
+                                 font=("sans", 30, "bold"), dropdown_font=("sans", 50, "bold"))
+    progtype.grid(row=3, column=1, padx=10, pady=5)
+    progtype.set("multilanguage")
+
+    input_window.protocol("WM_DELETE_WINDOW", lambda : on_ok())
+
+    def on_ok():
+        global program_name, tags, inplab, ok_button
+        app.configure(state='disabled')
+        global firstchk, entry, inplab, taginp, conslab, consinp, ok_button, deslab, descriptioninp, description
+        if not firstchk:
+            global description, constraints, progtype, program_type, proglab
+            tmp = entry.get().strip()  # Store the entered name in the global variable
+            if len(tmp) == 0:
+                show_error('Invalid Name!')
+                return
+            else :
+                program_name = tmp
+            constraints = "<h2>Constraints:</h2>\n"
+            loop = consinp.get("1.0", "end-1c")
+            for i in loop.splitlines():
+                constraints += f'<p>{i}</p>'
+            constraints += "\n\n"
+            description = "<h2>Problem Statement:</h2>\n\n" + "<p>" + descriptioninp.get("1.0",
+                                                                                         "end-1c") + "</p>\n\n"
+            if progtype.get() == 'multilanguage':
+                program_type = 1
+            else:
+                program_type = 0
+            entry.destroy()
+            inplab.destroy()
+            descriptioninp.destroy()
+            deslab.destroy()
+            conslab.destroy()
+            proglab.destroy()
+            progtype.destroy()
+            consinp.destroy()
+            ok_button.destroy()
+            firstchk = True
+            display_cases()
+            display_window2()
+        else:
+            global tags, samplein1, samplein2, samplein3, sampleout1, sampleout2, sampleout3
+            global in1, in2, in3, out1, out2, out3, input_window
+            tags = [f'<tag><text>{i}</text></tag>' for i in
+                    taginp.get().replace(" ", "").split(",")]
+            in1 = samplein1.get("1.0", "end-1c")
+            in2 = samplein2.get("1.0", "end-1c")
+            in3 = samplein3.get("1.0", "end-1c")
+            out1 = sampleout1.get("1.0", "end-1c")
+            out2 = sampleout2.get("1.0", "end-1c")
+            out3 = sampleout3.get("1.0", "end-1c")
+            description_make()
+            input_window.grab_release()
+            input_window.destroy()
+            app.configure(state='normal')
+            firstchk = False
+
+    ok_button = ctk.CTkButton(input_window, text="OK", width=750, height=40, command=on_ok,
+                              font=('sans', 15, 'bold'))
+    ok_button.grid(pady=10, padx=10, row=4, column=1)
+    app.wait_window(input_window)
+
+
+# Define the functions that will be used in the GUI
+def test_case():
+    global num_test_cases_entry
+    try:
+        return int(num_test_cases_entry.get())
+    except:
+        show_error('ENTER A NUMBER IN TESTCASES!')
+
+
+def set_language():
+    global language_value, language_selection
+    tmp = language_selection.get()
+    if tmp == 'C':
+        language_value = 1
+    elif tmp == 'C++':
+        language_value = 2
+    elif tmp == 'Java':
+        language_value = 3
+    elif tmp == 'Python':
+        language_value = 4
+    elif tmp == 'C#':
+        language_value = 5
+    elif tmp == 'Go':
+        language_value = 6
+    else:
+        show_error('INVALID LANGUAGE CHOICE. HOW IS THAT EVEN POSSIBLE!')
+        # pltfrm_choice = int(input(
+        #    "Enter your choice of platform\n1. HackerRank\n2. HackerEarth\n3. CodeChef\n"))
+
+
+def set_platform():
+    global platform_value, platform_selection
+    try:
+        tmp = platform_selection.get()
+        if tmp == 'HackerRank':
+            platform_value = 1
+        elif tmp == 'HackerEarth':
+            platform_value = 2
+        elif tmp == 'CodeChef':
+            platform_value = 3
+        elif tmp == 'VPL':
+            platform_value = 4
+        elif tmp == 'CodeRunner':
+            platform_value = 5
+        else:
+            show_error('WEIRD. STUCK AT PLATFORM CHOICE!')
+    except:
+        show_error('INVALID PLATFORM? HOW')
+
+def fun():
+    global chk, max_time, inputs, outputs, generate_button
+    generate_button.configure(state = 'disabled')
+
+    global program_name, platform_value
+    chk = False
+    print('reaches 5')
+    try:
+        if platform_value == 5:
+            get_program_details()
+
+        print('reaches 3')
+        progressbar_setup()
+        main()
+        progressbar_destroy()
+    except CompilationError:
+        return
+    except RuntimeError:
+        return
+    except Exception:
+        show_error("Invalid options or code!")
+        return
+    finally:
+        generate_button.configure(state='normal')
+
+    show_error(f"Success! File is saved at {os.getcwd()}")
+
+
+def genbun():
+    global inputs, outputs, program_name, max_time, times, code, chk
+    global program_type, tags, description, constraints, in1, out1, in2, out2, in3, out3
+
+    if python_code_entry.get("1.0", "end-1c").strip() == '' or logic_code_entry.get("1.0", "end-1c").strip() == '' :
+        show_error('Invalid Info! Enter the details properly!')
+        return
+    try:
+        exec(python_code_entry.get("1.0", "end-1c").strip())
+    except:
+        show_error('Invalid Python Code!')
+        return
+
+    try :
+        test_case()
+        logic_code()
+        set_platform()
+        set_language()
+    except Exception:
+        show_error('Invalid Inputs!!!!')
+        return
+
+    try:
+        int(num_test_cases_entry.get())
+    except:
+        show_error('Improper Number for Test Cases!')
+        return
+
+    try:
+        chk = True
+        testlogic()
+    except:
+        chk = False
+        show_error('Invalid Logic!')
+        return
+    chk = False
+
+
+    fun()
+    inputs.clear()
+    outputs.clear()
+    times.clear()
+    code = ""
+    program_name = ""
+    max_time = 0
+    program_name = str()
+    program_type = int()
+    tags = list()
+    description = str()
+    constraints = str()
+    in1, out1, in2, out2, in3, out3 = [""] * 6
+
+
+def logic_code():
+    try:
+        global code
+        code = logic_code_entry.get("1.0", "end-1c").strip()
+
+        if code == '':
+            show_error('INVALID LOGIC FILE!!!!')
+            return
+
+        language = language_selection.get()
+        file_extension = {
+            "Python": ".py",
+            "C": ".c",
+            "C++": ".cpp",
+            "Java": ".java",
+            "C#": ".cs",
+            "Go": ".go"
+        }.get(language)
+
+        file_name = f"_internal\\tc_generator\\logic{file_extension}"
+        with open(file_name, 'w') as f:
+            f.write(code)
+    except:
+        show_error('INVALID LOGIC FILE!')
+
+
+def printoo():
+    try:
+        s = python_code_entry.get("1.0", "end-1c").strip()
+        if s == '':
+            show_error('INVALID Python Code!')
+            return
+        exec(s)
+    except Exception:
+        show_error('INVALID Python Code!')
+        return
+
+
+# Output Preview Display
+ctk.CTkLabel(app, text_color='orange', text="Output Preview", font=("sans", 25, "bold"),
+             anchor="center").grid(row=0, column=2, padx=20, pady=10)
+preview_output = ctk.CTkTextbox(app, width=300, height=200, font=("sans", 20, "bold"), wrap='none',
+                                state='disabled')
+preview_output.grid(row=1, column=2, padx=20, pady=10, sticky="nsew")
+
+
+def testlogic():
+    global chk, max_time, inputs, outputs, times
+
+    try:
+        int(num_test_cases_entry.get())
+    except:
+        show_error('Improper Number for Test Cases!')
+        return
+
+    def clean():
+        global chk, max_time
+        chk = False
+        inputs.clear()
+        outputs.clear()
+        times.clear()
+        max_time = 0
+        preview_output.configure(state='disabled')
+        generate_button.configure(state='normal')
+    if python_code_entry.get("1.0", "end-1c").strip() == '' or logic_code_entry.get("1.0",
+                                                                                    "end-1c").strip() == '':
+        clean()
+        raise Exception("STOP")
+
+    try:
+        exec(python_code_entry.get("1.0", "end-1c").strip())
+    except:
+        clean()
+        raise Exception("STOP 2")
+    test_case()
+    logic_code()
+    set_platform()
+    set_language()
+    preview_output.configure(state='normal')
+    chk = True
+    try:
+        main()
+    except CompilationError:
+        clean()
+        raise Exception("Stop 3")
+    except Exception:
+        clean()
+        raise Exception("Stop 4")
+    preview_output.configure(state='disabled')
+
+
+# Preview button
+def preview_cases():
+    global chk, max_time, inputs, outputs, times
+
+    if python_code_entry.get("1.0", "end-1c").strip() == '' or logic_code_entry.get("1.0", "end-1c").strip() == '':
+        show_error('Invalid Code! Enter the details properly!')
+        return
+
+    try:
+        exec(python_code_entry.get("1.0", "end-1c").strip())
+    except:
+        show_error('Invalid Python Code!')
+        return
+
+    try:
+        int(num_test_cases_entry.get())
+    except:
+        show_error('Improper Number for Test Cases!')
+        return
+
+    try:
+        chk = True
+        testlogic()
+    except:
+        chk = False
+        show_error('Invalid Logic Code!')
+        return
+
+    test_case()
+    logic_code()
+    set_platform()
+    set_language()
+
+
+    chk = False
+
+    preview_output.configure(state='normal')
+    chk = True
+    try:
+        main()
+    except CompilationError:
+        return
+    except Exception:
+        show_error('An issue generating testcases!')
+        return
+    preview_output.delete("1.0", "end")
+    for i in range(2):
+        preview_output.insert('insert',
+                              f'INPUT:\n{str(inputs[i])}\nOUTPUT:\n{str(outputs[i])}\nTime Taken:\n{times[i]:.4f}\n' + ('-' * 250) + '\n')
+    preview_output.insert('insert', f"Max Time : {max_time:.4f}\n")
+
+    preview_output.configure(state='disabled')
+    chk = False
+    inputs.clear()
+    outputs.clear()
+    times.clear()
+    max_time = 0
+
+
+preview_button = ctk.CTkButton(app, width=80, height=90, font=("sans", 30, "bold"),
+                               text="Preview", text_color='black',
+                               command=preview_cases,
+                               image=ctk.CTkImage(dark_image=Image.open('_internal\\icons\\3671905_show_view_icon(1).png').resize((500, 50))),
+                               compound='left')
+preview_button.grid(row=2, column=2, padx=10, pady=(10, 0), sticky='nsew')
+
+# Generate Button
+generate_button = ctk.CTkButton(app, height=90, width=80, fg_color='green',
+                                hover_color='darkgreen',
+                                font=("sans", 30, "bold"), text="Generate", text_color='black',
+                                command=genbun,
+                                image= ctk.CTkImage(dark_image=Image.open('_internal\\icons\\8542038_download_data_icon.png').resize((500, 50))),
+                                compound='left')
+generate_button.grid(row=3, column=2, padx=10, pady=(20, 20), rowspan=2, sticky='nsew' )
+
+
+info_button = ctk.CTkButton(app, height=5, width=300, fg_color='darkcyan',
+                                hover_color='teal', bg_color='grey',
+                                font=("sans", 16, "bold"), text="info", text_color='black',
+                                image= ctk.CTkImage(dark_image=Image.open('_internal\\icons\\352432_info_icon(1).png').resize((500, 50))),
+                                compound='left', command=lambda: webbrowser.open("https://www.github.com/gabyah92/TestCasesGeneratorGUI")   )
+info_button.grid(row=5, column=0, padx=10, pady=5, sticky='nsew' )
+
+github_button = ctk.CTkButton(app, height=5, width=300, fg_color='darkcyan',
+                                hover_color='teal', bg_color='grey',
+                                font=("sans", 16, "bold"), text="github", text_color='black',
+                                image= ctk.CTkImage(dark_image=Image.open('_internal\\icons\\8666686_github_icon.png').resize((500, 50))),
+                                compound='left', command=lambda: webbrowser.open("https://www.github.com/gabyah92")  )
+github_button.grid(row=5, column=1, padx=10, pady=5, sticky='nsew' )
+
+instagram_button = ctk.CTkButton(app, height=5, width=300, fg_color='darkcyan',
+                                hover_color='teal', bg_color='grey',
+                                font=("sans", 16, "bold"), text="gabyah92", text_color='black',
+                                image= ctk.CTkImage(dark_image=Image.open('_internal\\icons\\9024634_instagram_logo_light_icon.png').resize((500, 50))),
+                                compound='left', command=lambda: webbrowser.open("https://www.instagram.com/gabyah92")  )
+instagram_button.grid(row=5, column=2, padx=10, pady=5, sticky='nsew' )
+
+
+def progressbar_setup():
+    global progress_bar, progress_root, progress_inputs, progress_outputs, progress_label
+    progress_root = ctk.CTk()
+    progress_root.iconbitmap("_internal\\icons\\logo.ico")
+    progress_root.protocol("WM_DELETE_WINDOW", lambda: sys.exit(0))
+    progress_label = ctk.CTkLabel(progress_root, text="Generating TestCases",
+                                  font=("sans", 20, "bold"))
+    progress_inputs = ctk.CTkLabel(progress_root, text="Generating Inputs...",
+                                   font=("sans", 20, "bold"))
+    progress_outputs = ctk.CTkLabel(progress_root, text="Generating Outputs...",
+                                    font=("sans", 20, "bold"))
+    progress_bar = ctk.CTkProgressBar(progress_root, width=250, progress_color='orange',
+                                      fg_color='grey', height=20)
+
+    height = 300
+    width = 300
+    screenwidth = app.winfo_screenwidth()
+    screenheight = app.winfo_screenheight()
+    alignstr = '%dx%d+%d+%d' % (
+        width, height, (screenwidth - width) / 2, (screenheight - height) / 2)
+    progress_root.geometry(alignstr)
+    progress_root.resizable(width=False, height=False)
+    progress_root.after(250, progress_root.iconbitmap('_internal\\icons\\logo.ico'))
+    progress_root.title("Progress")
+    progress_root.grid_rowconfigure(0, weight=1)
+    progress_root.grid_rowconfigure(1, weight=1)
+    progress_root.grid_rowconfigure(2, weight=1)
+    progress_root.grid_columnconfigure(0, weight=1)
+    progress_root.grid_columnconfigure(1, weight=1)
+    progress_root.grid_columnconfigure(2, weight=1)
+    progress_label.pack(pady=20, padx=20)
+    progress_inputs.configure(text_color='red')
+    progress_inputs.pack(pady=20, padx=10)
+    progress_outputs.configure(text_color='red')
+    progress_outputs.pack(pady=20, padx=10)
+    progress_bar.pack(pady=20)
+    progress_root.grab_set()
+    progress_root.update()
+    progress_bar.start()
+    progress_bar.set(0)
+
+def progressbar_destroy():
+    global progress_bar, progress_root
+    progress_root.grab_release()
+    progress_bar.stop()
+    progress_bar.destroy()
+    progress_root.destroy()
+
+
+
+
+__all__ = ['IN_SOURCE', 'OUT_SOURCE', 'POWER', 'RINT', 'TC_SOURCE', 'generate',
+           'compile_them', 'zip_codechef', 'zip_hackerrank', 'zip_hackerearth', 'zip_them',
+           'check_empty', 'make_dirs', 'Error', 'EmptyFileException', 'CompilationError',
+           'RunError', 'ValueOutsideRange', 'make_lf_ending']
 
 
 class Error(Exception):
     """Base class for other exceptions."""
     pass
 
+
 class EmptyFileException(Error):
     """Raised when output file is empty"""
     pass
+
 
 class CompilationError(Error):
     """Raised when logic program is not compiled properly"""
     pass
 
+
 class RunError(Error):
     """Raised when logic program encounters runtime error"""
     pass
+
 
 class ValueOutsideRange(Error):
     """Raised when value entered is outside range"""
     pass
 
 
-
-DIRNAME = os.path.abspath(os.path.dirname(__file__)) # Absolute path of the file
-IN_SOURCE = os.path.join(DIRNAME, 'input')
-OUT_SOURCE = os.path.join(DIRNAME, 'output')
-TC_SOURCE = os.path.join(DIRNAME, 'test-cases')
+IN_SOURCE = resource_path2('input')
+OUT_SOURCE = resource_path2('output')
+TC_SOURCE = resource_path2('test-cases')
 TC_ZIP = TC_SOURCE + '.zip'
 POWER = math.pow
 RINT = random.randint
@@ -80,12 +747,12 @@ def check_empty(file):
     """Raises exception if file is empty."""
 
     if os.stat(file).st_size == 0:
+        show_error('Empty output file!')
         raise EmptyFileException('Empty output file!')
 
 
 def make_lf_ending(file):
     """Converts all crlf line endings to lf"""
-
     with open(file, 'rb') as in_file:
         content = in_file.read()
     content = content.replace(WINDOWS_LINE_ENDING, UNIX_LINE_ENDING)
@@ -111,9 +778,11 @@ def compile_them(lang_choice):
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,
                                 universal_newlines=True)
-    sdout,stderr = compiled.communicate()
+    stdout, stderr = compiled.communicate()
     if stderr:
-        raise CompilationError(f'Compilation error!\n{stderr}')
+        # show_error(f'Incorrect Language for logic code!\nCouldn\'t Compile!')
+        raise CompilationError("Incorrect Language")
+
 
 
 def generate(lang_choice, i):
@@ -135,8 +804,9 @@ def generate(lang_choice, i):
                                          stderr=subprocess.PIPE,
                                          universal_newlines=True)
 
-    sdout,stderr = generated.communicate()
+    stdout, stderr = generated.communicate()
     if stderr:
+        show_error(f'Runtime error!\n{stderr}')
         raise RunError(f'Runtime error!\n{stderr}')
 
 
@@ -149,14 +819,13 @@ def zip_hackerrank():
     'output' directory in zip.
     """
 
-    with zipfile.ZipFile(TC_ZIP, 'w', \
-        zipfile.ZIP_DEFLATED) as zip_file:
+    with zipfile.ZipFile(TC_ZIP, 'w', zipfile.ZIP_DEFLATED) as zip_file:
         for in_file in os.listdir(IN_SOURCE):
             zip_file.write(os.path.join(IN_SOURCE, in_file), \
-                os.path.join('input', in_file))
+                           os.path.join('input', in_file))
         for out_file in os.listdir(OUT_SOURCE):
             zip_file.write(os.path.join(OUT_SOURCE, out_file), \
-                os.path.join('output', out_file))
+                           os.path.join('output', out_file))
     print(f"Test cases saved in {TC_ZIP}")
 
 
@@ -168,13 +837,13 @@ def zip_hackerearth():
     """
 
     with zipfile.ZipFile(TC_ZIP, 'w', \
-        zipfile.ZIP_DEFLATED) as zip_file:
+                         zipfile.ZIP_DEFLATED) as zip_file:
         for in_file in os.listdir(IN_SOURCE):
             zip_file.write(os.path.join(IN_SOURCE, in_file), \
-                in_file.replace('put', ''))
+                           in_file.replace('put', ''))
         for out_file in os.listdir(OUT_SOURCE):
             zip_file.write(os.path.join(OUT_SOURCE, out_file), \
-                out_file.replace('put', ''))
+                           out_file.replace('put', ''))
     print(f"Test cases saved in {TC_ZIP}")
 
 
@@ -204,71 +873,232 @@ def zip_them(test_files, lang_choice, pltfrm_choice):
     lang_choice   -- The choice of language which is chosen by the user
     pltfrm_choice -- The choice of platform which is chosen by the user
     """
-
+    global platform_value, max_time, progress_bar, progress_inputs, progress_outputs, times
     platforms = [zip_hackerrank, zip_hackerearth, zip_codechef]
-
+    if not chk:
+        progress_inputs.configure(text_color='green', text='Generating Inputs '+u'\u2713')
     for i in range(0, test_files + 1):
+        global max_time, progress_bar, times
         print(f'Generating output: {i}')
-
+        if not chk:
+            progress_bar.set(0.5 + (i + 1) * 0.5 / test_files)
+            progress_bar.update_idletasks()
         exe_command = f'generate({lang_choice}, {i})'
-
         try:
             exe_time = timeit.timeit(exe_command, globals=globals(), number=1)
         except RunError as run_error:
-            print(run_error, file=sys.stderr)
-            print(f"Looks like you don't have {LANGS[lang_choice]['req']} :/", file=sys.stderr)
-            print(f"You can refer to {LANGS[lang_choice]['link']} for help.", file=sys.stderr)
+            show_error('RunTimeError! Invalid Inputs!!')
             sys.exit(1)
         except FileNotFoundError as no_file:
-            print(no_file, file=sys.stderr)
+            show_error('FileNotFound! Invalid Inputs!')
             sys.exit(1)
 
         print(f'Time taken to execute this TC {exe_time:02f} seconds')
-
+        times.append(exe_time)
+        max_time = max(max_time, exe_time)
+        # print(OUT_SOURCE)
         out_file = os.path.join(OUT_SOURCE, f'output{i:02d}.txt')
         make_lf_ending(out_file)
+        outputs.append(open(os.path.join(OUT_SOURCE, f'output{i:02d}.txt'), 'r').read())
+
         try:
             check_empty(out_file)
         except EmptyFileException as empty_file:
-            print(empty_file, file=sys.stderr)
+            show_error('Output Files Are Empty!!')
+            return
+            #print(empty_file, file=sys.stderr)
+    if not chk:
+        global progress_outputs, description, code, language_value, tags, in1, in2, in3, out1, out2, out3
+        if platform_value < 4:
+            print('Zipping ... ')
+            zip_choice = platforms[pltfrm_choice]
+            zip_choice()
+        elif platform_value == 4:
+            kr = open('_internal\\generated\\vpl_evaluate.cases', 'w')
+            strr = ''
+            for i in range(len(inputs)):
+                strr += f'case = {i + 1}' + "\n"
+                strr += f'input = {str(inputs[i])}'
+                strr += f'output = {str(outputs[i])}' + "\n"
 
-    print('Zipping ... ')
-    zip_choice = platforms[pltfrm_choice]
-    zip_choice()
+            kr.write(strr)
+        elif platform_value == 5:
+            kr = open(f'_internal\\generated\\{program_name}.xml', 'w', encoding='utf-8')
+            strr = '''<?xml version="1.0" encoding="UTF-8"?>
+    <quiz>
+    <!-- question: 427  -->
+      <question type="coderunner">
+        <name>
+          <text>'''
+            strr += program_name
+            strr += f'''</text>
+        </name>
+        <questiontext format="html"><text><![CDATA[{description}]]></text></questiontext>
+        <generalfeedback format="html">
+          <text></text>
+        </generalfeedback>
+        <defaultgrade>20</defaultgrade>
+        <penalty>0</penalty>
+        <hidden>0</hidden>'''
+            strr+=f'''<idnumber>{datetime.now().strftime("%Y%m%d%H%M%S")}</idnumber><coderunnertype>'''
+
+            if program_type == 1 or language_value > 4:
+                strr+='''multilanguage'''
+            else:
+                tmp = language_value
+                if tmp == 1:
+                    strr += 'c_program'
+                elif tmp == 2:
+                    strr += 'cpp_program'
+                elif tmp == 3:
+                    strr += 'java_program'
+                elif tmp == 4:
+                    strr += 'python3'
+            strr+='''</coderunnertype><prototypetype>0</prototypetype>
+        <allornothing>0</allornothing>
+        <penaltyregime>10, 20, ...</penaltyregime>
+        <precheck>2</precheck>
+        <hidecheck>0</hidecheck>
+        <showsource>0</showsource>
+        <answerboxlines>18</answerboxlines>
+        <answerboxcolumns>100</answerboxcolumns>
+        <answerpreload> </answerpreload>
+        <globalextra></globalextra>
+        <useace></useace>
+        <resultcolumns></resultcolumns>
+        <template></template>
+        <iscombinatortemplate></iscombinatortemplate>
+        <allowmultiplestdins></allowmultiplestdins>'''
+            if program_type == 0:
+                strr += f"<answer><![CDATA[{code}]]></answer>"
+            else :
+                strr += '<answer></answer>'
+            strr += ''' 
+        <validateonsave>1</validateonsave>
+        <testsplitterre></testsplitterre>
+        <language></language>
+        <acelang></acelang>
+        <sandbox></sandbox>
+        <grader></grader>
+        <cputimelimitsecs>''' + str(math.ceil(max_time) + 3) + '''</cputimelimitsecs>
+        <memlimitmb></memlimitmb>
+        <sandboxparams></sandboxparams>
+        <templateparams></templateparams>
+        <hoisttemplateparams>0</hoisttemplateparams>
+        <extractcodefromjson>0</extractcodefromjson>
+        <templateparamslang>None</templateparamslang>
+        <templateparamsevalpertry>0</templateparamsevalpertry>
+        <templateparamsevald>{}</templateparamsevald>
+        <twigall>0</twigall>
+        <uiplugin></uiplugin>
+        <uiparameters><![CDATA[{
+        "auto_switch_light_dark": false,
+        "font_size": "15px",
+        "import_from_scratchpad": true,
+        "live_autocompletion": true,
+        "theme": "tomorrow_night"
+    }]]></uiparameters>
+        <attachments>0</attachments>
+        <attachmentsrequired>0</attachmentsrequired>
+        <maxfilesize>10240</maxfilesize>
+        <filenamesregex></filenamesregex>
+        <filenamesexplain></filenamesexplain>
+        <displayfeedback>1</displayfeedback>
+        <giveupallowed>0</giveupallowed>
+        <prototypeextra></prototypeextra>
+        <testcases>'''
+            sampleins = [in1, in2, in3]
+            sampleouts = [out1, out2, out3]
+            for i in range(1, 4):
+                strr += f'''
+                          <testcase testtype="0" useasexample="1" hiderestiffail="0" mark="1.0000000" >
+                          <testcode>
+                                    <text>Sample Test Case {i}</text>
+                          </testcode>
+                          <stdin>
+                                    <text>{str(sampleins[i-1])}</text>
+                          </stdin>
+                          <expected>
+                                    <text>{str(sampleouts[i-1])}</text>
+                          </expected>
+                          <extra>
+                                    <text></text>
+                          </extra>
+                          <display>
+                                    <text>SHOW</text>
+                          </display>
+                        </testcase>
+                                '''
+            for i in range(len(inputs)):
+                strr += f'''
+                <testcase testtype="0" useasexample="0" hiderestiffail="1" mark="1.0000000" >
+          <testcode>
+                    <text>Hidden Test Case {i + 1}</text>
+          </testcode>
+          <stdin>
+                    <text>{str(inputs[i])}</text>
+          </stdin>
+          <expected>
+                    <text>{str(outputs[i])}</text>
+          </expected>
+          <extra>
+                    <text></text>
+          </extra>
+          <display>
+                    <text>HIDE</text>
+          </display>
+        </testcase>
+                '''
+
+            strr += f'''</testcases>
+        <tags>
+          <tag><text>autoupload</text>
+    </tag>{tags}
+        </tags>
+      </question>
+
+    </quiz>'''
+            kr.write(strr)
+        progress_outputs.configure(text_color='green', text='Generating Outputs ' + u'\u2713')
+        progress_outputs.update_idletasks()
+        time.sleep(0.05)
 
 
 def main():
     """
     Takes in the choice of language and platform from the user, creates input files as per the
-    logic defined in the input area and calls in the complie_them and zip_them function.
+    logic defined in the input area and calls in the compile_them and zip_them function.
     """
-
+    global language_value
+    global platform_value
     try:
-        lang_choice = int(input(
-            "Enter your choice of language\n1. C\n2. C++\n3. Java\n4. Python\n5. C#\n6. Go\n"))
-        pltfrm_choice = int(input(
-            "Enter your choice of platform\n1. HackerRank\n2. HackerEarth\n3. CodeChef\n"))
-        if lang_choice not in range(1, 7):
-            raise ValueOutsideRange("Choice of language should be in 1 to 6!")
-        if pltfrm_choice not in range(1, 4):
-            raise ValueOutsideRange("Choice of platform should be in 1 to 3!")
+        # lang_choice = int(input(
+        #    "Enter your choice of language\n1. C\n2. C++\n3. Java\n4. Python\n5. C#\n6. Go\n"))
+        lang_choice = language_value
+
+        # pltfrm_choice = int(input(
+        #    "Enter your choice of platform\n1. HackerRank\n2. HackerEarth\n3. CodeChef\n"))
+        pltfrm_choice = platform_value
     except (SyntaxError, ValueError) as err:
-        print(err, file=sys.stderr)
-        print("You didn't enter a number!", file=sys.stderr)
-        sys.exit(1)
-    except ValueOutsideRange as val_err:
-        print(val_err, file=sys.stderr)
-        print("Wrong choice entered!", file=sys.stderr)
+        #print(err, file=sys.stderr)
+        show_error("You didn't enter a number!")
+        #print("You didn't enter a number!", file=sys.stderr)
         sys.exit(1)
 
     make_dirs()
 
     lang_choice -= 1
     pltfrm_choice -= 1
-    test_files = 10  # number of test files, change it according to you.
-
+    test_files = test_case()  # number of test files, change it according to you.
+    global chk, progress_bar
+    if chk:
+        test_files = 2
     for i in range(0, test_files + 1):
         print(f'Generating input: {i}')
+        if not chk:
+            progress_bar.set((i + 1) * 0.5 / test_files)
+            progress_bar.update_idletasks()
+
         in_file = os.path.join(IN_SOURCE, f'input{i:02d}.txt')
         sys.stdout = open(in_file, 'w')
 
@@ -277,24 +1107,13 @@ def main():
 
         # Input File Printing Starts
         # number of test cases in (1,10^5)
-        required_input = RINT(5, POWER(10, (i // 2) + 1))
-        print(required_input)  # Prints x into input file
-        for _ in range(required_input):
-            print(RINT(1, POWER(10, min(4, max(i // 2, 2)))))
+        printoo()
 
         # Input File Printing Ends
         sys.stdout = sys.__stdout__
-
+        inputs.append(open(os.path.join(IN_SOURCE, f'input{i:02d}.txt'), 'r').read())
         make_lf_ending(in_file)
-
-    try:
-        compile_them(lang_choice)
-    except CompilationError as comp_error:
-        print(comp_error, file=sys.stderr)
-        print(f"Looks like you don't have {LANGS[lang_choice]['req']} :/", file=sys.stderr)
-        print(f"You can refer to {LANGS[lang_choice]['link']} for help.", file=sys.stderr)
-        sys.exit(1)
-
+    compile_them(lang_choice)
     zip_them(test_files, lang_choice, pltfrm_choice)
 
     shutil.rmtree(IN_SOURCE)
@@ -302,4 +1121,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main = threading.Thread(target=app.mainloop())
+        main.start()
+    except Exception:
+        pass
+    # main()
