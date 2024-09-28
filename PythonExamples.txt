@@ -1,4 +1,4 @@
-THE PYTHON CODE CONVERTS WHATEVER YOU PRINT INTO TEST-CASES
+# THE PYTHON CODE CONVERTS WHATEVER YOU PRINT AS TEST-CASES
 
 1. Taking a random input from the user:
 
@@ -32,3 +32,8 @@ for i in range(T):
 6. Take an input binary value.
 for i in range(RINT(1,100)):
     print(RINT(0,1),end='')
+
+# BASIC GUIDELINES
+1. LOGIC FILE CLASS MUST ALWAYS BE logic. 
+2. For C & C++ language, main must be int.
+3. A general suggestion is to print between 1 to 10^5 for numbers between testcases. Small cases repeating t number of times is better than printing a lot of testcases.
