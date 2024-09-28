@@ -45,7 +45,7 @@ The following languages are supported for testcase generation:
 - Download and install Python **[here](https://www.python.org/downloads/)**.
 - Download the latest release zip file **[here](https://github.com/gabyah92/TestCasesGeneratorGUI/releases)** and unpack into a folder. 
 - Run tc_gen.exe from that extracted folder.
-- The testcases generated will be within the 'generated' folder.
+- The testcases generated will be within the 'generated' folder, which is inside the _internal folder.
 
 ## How to Use ? 😃
 
