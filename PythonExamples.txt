@@ -1,0 +1,34 @@
+THE PYTHON CODE CONVERTS WHATEVER YOU PRINT INTO TEST-CASES
+
+1. Taking a random input from the user:
+
+N = RINT(1,1000) # Between 1 and 1000
+print(N)
+
+2. Take two inputs from the user. 
+print(RINT(1,1000), RINT(1,1000))
+
+3. Take an input N and N inputs from the user.
+n = RINT(1,1000)
+print(n)
+for i in range(n):
+    print(RINT(1,1000), end=' ')
+
+4. Take an input string.
+string = 'abcdefghijklmnopqrstuvwxyz'
+for i in range(RINT(1,1000)):
+    print(string[RINT(0,25)], end='')
+
+5. Take an input T(testcases) and take another input N and take N inputs from the user.
+T = RINT(1,1000)
+print(T)
+for i in range(T):
+    N = RINT(1,1000)
+    print(N)
+    for j in range(N):
+        print(RINT(1,1000), end=' ')
+    print()
+
+6. Take an input binary value.
+for i in range(RINT(1,100)):
+    print(RINT(0,1),end='')
