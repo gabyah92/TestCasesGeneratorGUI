@@ -55,7 +55,7 @@ The following languages are supported for testcase generation:
 
 # Stargazers over time 📈
 
-[![Star History Chart](https://api.star-history.com/svg?repos=TestCasesGeneratorGUI/TestCasesGeneratorGUI&type=Date)](https://star-history.com/#TestCasesGeneratorGUI/TestCasesGeneratorGUI&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=gabyah92/TestCasesGeneratorGUI&type=Date)](https://star-history.com/#gabyah92/TestCasesGeneratorGUI&Date)
 
 # Social Media : 
 - Follow me on Instagram : **[gabyah92](https://www.instagram.com/gabyah92/)**
