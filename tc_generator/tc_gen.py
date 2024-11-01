@@ -137,8 +137,8 @@ def show_error(message):
     error_window = ctk.CTkToplevel(app)  # Create a new window
     error_window.title("Alert!")
     error_window.after(250, lambda: error_window.iconbitmap('_internal\\icons\\logo.ico'))
-    height = 500
-    width = 1000
+    height = 100
+    width = 500
     screenwidth = app.winfo_screenwidth()
     screenheight = app.winfo_screenheight()
     alignstr = '%dx%d+%d+%d' % (
@@ -529,10 +529,10 @@ def testlogic():
     chk = True
     try:
         main()
-    except CompilationError as c:
+    except CompilationError:
         clean()
-        raise Exception(str(c))
-    except Exception as e:
+        raise Exception("Stop 3")
+    except Exception:
         clean()
         raise Exception("Stop 4")
     preview_output.configure(state='disabled')
@@ -561,7 +561,7 @@ def preview_cases():
     try:
         chk = True
         testlogic()
-    except Exception as e:
+    except:
         chk = False
         show_error('Invalid Logic Code!')
         return
@@ -760,31 +760,28 @@ def make_lf_ending(file):
         out_file.write(content)
 
 
-import os
-
 def compile_them(lang_choice):
     """
     Compiles the code.
+    Raises error if there's some compilation error.
 
-    Args:
-        lang_choice: The choice of language which is chosen by the user.
-
-    Raises:
-        CompilationError: If compilation fails.
+    Argument:
+    lang_choice -- The choice of language which is chosen by the user
     """
 
-    if lang_choice == 3:  # Python doesn't require compilation
+    # Don't run compile for Python
+    if lang_choice == 3:
         return
 
-    compiler_command = " ".join(LANGS[lang_choice]["compile"])
-    
-    try:
-        result = os.popen(compiler_command).read()
-        if result:
-            raise CompilationError(f"Compilation error: {result}")
-    except Exception as e:
-        raise CompilationError(f"Compilation error: {str(e)}")
-    
+    compiled = subprocess.Popen(LANGS[lang_choice]['compile'],shell=True,
+                                stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                universal_newlines=True)
+    stdout, stderr = compiled.communicate()
+    if stderr:
+        # show_error(f'Incorrect Language for logic code!\nCouldn\'t Compile!')
+        raise CompilationError("Incorrect Language")
 
 
 
@@ -798,37 +795,19 @@ def generate(lang_choice, i):
     lang_choice -- The choice of language which is chosen by the user
     i           -- 'i'th testcase for which output is to be generated
     """
-    try:
-        with open(os.path.join(IN_SOURCE, f'input{i:02d}.txt'), 'r') as in_file:
-            with open(os.path.join(OUT_SOURCE, f'output{i:02d}.txt'), 'w') as out_file:
-                if lang_choice==1 or lang_choice==0 or lang_choice==4:
-                    command= f"{LANGS[lang_choice]['command'][0]  } < " + str(in_file.name)
-                    # for go , c, c++
-                elif lang_choice==2:
-                    command =f"java -cp {LANGS[lang_choice]["command"][2]} {LANGS[lang_choice]["command"][3]} < " + str(in_file.name)
-                    #for java 
-                else:
-                    command = f"{LANGS[lang_choice]['command'][0]} {LANGS[lang_choice]['command'][1]} < " +str(in_file.name)
-                    # for python
-               
-                
-                
-                
 
-                
-                with os.popen(command) as process:
-                    output = process.read()  #reading stdout and stderr
-                    
-                    out_file.write(str(output))
-                    
-                    # error check
-                    if "error" in output.lower():  
-                        show_error(f'Runtime error!\n{output}')
-                        raise RunError(f'Runtime error!\n{output}')
-    except Exception as e:
-        show_error(str(e)+"error while generating")
+    with open(os.path.join(IN_SOURCE, f'input{i:02d}.txt'), 'r+') as in_file:
+        with open(os.path.join(OUT_SOURCE, f'output{i:02d}.txt'), 'w+') as out_file:
+            generated = subprocess.Popen(LANGS[lang_choice]['command'],shell=True,
+                                         stdin=in_file,
+                                         stdout=out_file,
+                                         stderr=subprocess.PIPE,
+                                         universal_newlines=True)
 
-    
+    stdout, stderr = generated.communicate()
+    if stderr:
+        show_error(f'Runtime error!\n{stderr}')
+        raise RunError(f'Runtime error!\n{stderr}')
 
 
 def zip_hackerrank():
@@ -904,13 +883,9 @@ def zip_them(test_files, lang_choice, pltfrm_choice):
         if not chk:
             progress_bar.set(0.5 + (i + 1) * 0.5 / test_files)
             progress_bar.update_idletasks()
-        
+        exe_command = f'generate({lang_choice}, {i})'
         try:
-            start_time = time.perf_counter()
-            generate(lang_choice, i)
-            end_time = time.perf_counter()
-            exe_time = end_time - start_time
-        
+            exe_time = timeit.timeit(exe_command, globals=globals(), number=1)
         except RunError as run_error:
             show_error('RunTimeError! Invalid Inputs!!')
             sys.exit(1)
@@ -932,8 +907,6 @@ def zip_them(test_files, lang_choice, pltfrm_choice):
             show_error('Output Files Are Empty!!')
             return
             #print(empty_file, file=sys.stderr)
-    #if lang_choice!=3:
-    #    os.remove(LANGS[lang_choice]["command"][0])
     if not chk:
         global progress_outputs, description, code, language_value, tags, in1, in2, in3, out1, out2, out3
         if platform_value < 4:
@@ -1140,14 +1113,8 @@ def main():
         sys.stdout = sys.__stdout__
         inputs.append(open(os.path.join(IN_SOURCE, f'input{i:02d}.txt'), 'r').read())
         make_lf_ending(in_file)
-    try:
-        compile_them(lang_choice)
-    except Exception as e:
-        show_error(str(e)+" error while compiling the program")
-    try :
-        zip_them(test_files, lang_choice, pltfrm_choice)
-    except Exception as e: 
-        show_error(str(e) +" error while generating and zipping input and output files ")
+    compile_them(lang_choice)
+    zip_them(test_files, lang_choice, pltfrm_choice)
 
     shutil.rmtree(IN_SOURCE)
     shutil.rmtree(OUT_SOURCE)
