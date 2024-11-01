@@ -137,8 +137,8 @@ def show_error(message):
     error_window = ctk.CTkToplevel(app)  # Create a new window
     error_window.title("Alert!")
     error_window.after(250, lambda: error_window.iconbitmap('_internal\\icons\\logo.ico'))
-    height = 100
-    width = 500
+    height = 150
+    width = 800
     screenwidth = app.winfo_screenwidth()
     screenheight = app.winfo_screenheight()
     alignstr = '%dx%d+%d+%d' % (
@@ -470,7 +470,8 @@ def logic_code():
         with open(file_name, 'w') as f:
             f.write(code)
     except:
-        show_error('INVALID LOGIC FILE!')
+        pass
+        # show_error('INVALID LOGIC FILE!')
 
 
 def printoo():
@@ -637,7 +638,7 @@ instagram_button.grid(row=5, column=2, padx=10, pady=5, sticky='nsew' )
 
 
 def progressbar_setup():
-    global progress_bar, progress_root, progress_inputs, progress_outputs, progress_label
+    global app, progress_bar, progress_root, progress_inputs, progress_outputs, progress_label
     progress_root = ctk.CTk()
     progress_root.iconbitmap("_internal\\icons\\logo.ico")
     progress_root.protocol("WM_DELETE_WINDOW", lambda: sys.exit(0))
@@ -777,12 +778,11 @@ def compile_them(lang_choice):
                                 stdin=subprocess.PIPE,
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,
-                                universal_newlines=True)
+                                universal_newlines=True, shell=True)
     stdout, stderr = compiled.communicate()
     if stderr:
         # show_error(f'Incorrect Language for logic code!\nCouldn\'t Compile!')
         raise CompilationError("Incorrect Language")
-
 
 
 def generate(lang_choice, i):
@@ -802,7 +802,7 @@ def generate(lang_choice, i):
                                          stdin=in_file,
                                          stdout=out_file,
                                          stderr=subprocess.PIPE,
-                                         universal_newlines=True)
+                                         universal_newlines=True,shell = True)
 
     stdout, stderr = generated.communicate()
     if stderr:
@@ -1061,7 +1061,7 @@ def zip_them(test_files, lang_choice, pltfrm_choice):
             kr.write(strr)
         progress_outputs.configure(text_color='green', text='Generating Outputs ' + u'\u2713')
         progress_outputs.update_idletasks()
-        time.sleep(0.05)
+        time.sleep(0.02)
 
 
 def main():

@@ -1,15 +1,22 @@
 #include <stdio.h>
-#include <math.h>
+void printPyramid(int n) {
+    int i, j;
+    for (i = 1; i <= n; i++) {
+        for (j = 0; j < n - i; j++) {
+            printf(" ");
+        }
+        for (j = 0; j < (2 * i - 1); j++) {
+            printf("*");
+        }
+        printf("\n");
+    }
+}
 
 int main() {
-	int t;
-	scanf("%d", &t);
-	while(t--) {
-		long long n, x, res;
-		scanf("%lld", &n);
-		x = (n*(n+1))/2;
-		res = x*x;
-		printf("%lld\n", res%1000000007);
-	}
-	return 0;
+    int n;
+    scanf("%d", &n);
+     printPyramid(n);
+
+
+    return 0;
 }

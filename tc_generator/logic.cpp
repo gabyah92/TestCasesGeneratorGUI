@@ -1,16 +1,21 @@
-#include <bits/stdc++.h>
-
-using namespace std;
+void printPyramid(int n) {
+    int i, j;
+    for (i = 1; i <= n; i++) {
+        for (j = 0; j < n - i; j++) {
+            printf(" ");
+        }
+        for (j = 0; j < (2 * i - 1); j++) {
+            printf("*");
+        }
+        printf("\n");
+    }
+}
 
 int main() {
-	int t;
-	cin >> t;
-	while(t--) {
-		long long n, x, res;
-		cin >> n;
-		x = (n*(n+1))/2;
-		res = x*x;
-		cout << res%1000000007 << endl;
-	}
-	return 0;
+    int n;
+    scanf("%d", &n);
+     printPyramid(n);
+    
+    
+    return 0;
 }
