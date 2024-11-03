@@ -156,11 +156,17 @@ def show_error(message):
 
 def description_make():
     global description, constraints, in1, in2, in3, out1, out2, out3
-    description += "<h2>Sample TestCases:</h2>\n\n"
-    description += "<b>Sample Input 1:</b>\n<p>"+str(in1).rstrip()+"</p>\n<b>Sample Output 1:</b>\n<p>"+str(out1).rstrip()+"</p>\n\n"
-    description += "<b>Sample Input 2:</b>\n<p>" + str(in2).rstrip() + "</p>\n<b>Sample Output 2:</b>\n<p>" + str(out2).rstrip() + "</p>\n\n"
-    description += "<b>Sample Input 3:</b>\n<p>" + str(in3).rstrip() + "</p>\n<b>Sample Output 3:</b>\n<p>" + str(out3).rstrip() + "</p>\n\n</p>"
-    description += constraints
+    tin1, tin2, tin3 = str(in1).rstrip(), str(in2).rstrip(), str(in3).rstrip()
+    tout1, tout2, tout3 = str(out1).rstrip(), str(out2).rstrip(), str(out3).rstrip()
+    if tin1 != "" or tin2 != "" or tin3 != "" or tout1 != "" or tout2 != "" or tout2 != "":
+        description += "<h2>Sample TestCases:</h2>\n\n"
+    if tout1 != "" or tin1 != "":
+        description += "<b>Sample Input 1:</b>\n<p>"+tin1+"</p>\n<b>Sample Output 1:</b>\n<p>"+tout1+"</p>\n\n"
+    if tout2 != "" or tin2 != "":
+        description += "<b>Sample Input 2:</b>\n<p>" + tin2 + "</p>\n<b>Sample Output 2:</b>\n<p>" + tout2 + "</p>\n\n"
+    if tout1 != "" or tin1 != "":
+        description += "<b>Sample Input 3:</b>\n<p>" + tin3 + "</p>\n<b>Sample Output 3:</b>\n<p>" + tout3 + "</p>\n\n"
+    description += "</p>"+constraints
 
 def get_program_details():
     global program_name, firstchk, entry
@@ -1010,16 +1016,19 @@ def zip_them(test_files, lang_choice, pltfrm_choice):
             sampleins = [in1, in2, in3]
             sampleouts = [out1, out2, out3]
             for i in range(1, 4):
+                tmpppin, tmpppout = str(sampleins[i-1]), str(sampleouts[i-1])
                 strr += f'''
                           <testcase testtype="0" useasexample="1" hiderestiffail="0" mark="1.0000000" >
-                          <testcode>
-                                    <text>Sample Test Case {i}</text>
+                          <testcode>'''
+                if tmpppin.strip() != '' or tmpppout.strip() != '':
+                    strr += f'''<text>Sample Test Case {i}</text>'''
+                strr += f'''
                           </testcode>
                           <stdin>
-                                    <text>{str(sampleins[i-1])}</text>
+                                    <text>{tmpppin}</text>
                           </stdin>
                           <expected>
-                                    <text>{str(sampleouts[i-1])}</text>
+                                    <text>{tmpppout}</text>
                           </expected>
                           <extra>
                                     <text></text>
@@ -1045,7 +1054,7 @@ def zip_them(test_files, lang_choice, pltfrm_choice):
                     <text></text>
           </extra>
           <display>
-                    <text>HIDE</text>
+                    <text>HIDE_IF_SUCCEED</text>
           </display>
         </testcase>
                 '''
