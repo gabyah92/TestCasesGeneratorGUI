@@ -158,13 +158,13 @@ def description_make():
     global description, constraints, in1, in2, in3, out1, out2, out3
     tin1, tin2, tin3 = str(in1).rstrip(), str(in2).rstrip(), str(in3).rstrip()
     tout1, tout2, tout3 = str(out1).rstrip(), str(out2).rstrip(), str(out3).rstrip()
-    if tin1 != "" or tin2 != "" or tin3 != "" or tout1 != "" or tout2 != "" or tout2 != "":
+    if tin1 != "" or tin2 != "" or tin3 != "" or tout1 != "" or tout2 != "" or tout3 != "":
         description += "<h2>Sample TestCases:</h2>\n\n"
     if tout1 != "" or tin1 != "":
         description += "<b>Sample Input 1:</b>\n<p>"+tin1+"</p>\n<b>Sample Output 1:</b>\n<p>"+tout1+"</p>\n\n"
     if tout2 != "" or tin2 != "":
         description += "<b>Sample Input 2:</b>\n<p>" + tin2 + "</p>\n<b>Sample Output 2:</b>\n<p>" + tout2 + "</p>\n\n"
-    if tout1 != "" or tin1 != "":
+    if tout3 != "" or tin3 != "":
         description += "<b>Sample Input 3:</b>\n<p>" + tin3 + "</p>\n<b>Sample Output 3:</b>\n<p>" + tout3 + "</p>\n\n"
     description += "</p>"+constraints
 
@@ -274,6 +274,9 @@ def get_program_details():
             tmp = entry.get().strip()  # Store the entered name in the global variable
             if len(tmp) == 0:
                 show_error('Invalid Name!')
+                return
+            elif [i for i in str(tmp) if i in '/\\:*?"<<>>||']:
+                show_error('Name must not have Characters : / \\ : * ? " < > |')
                 return
             else :
                 program_name = tmp
@@ -1017,27 +1020,27 @@ def zip_them(test_files, lang_choice, pltfrm_choice):
             sampleouts = [out1, out2, out3]
             for i in range(1, 4):
                 tmpppin, tmpppout = str(sampleins[i-1]), str(sampleouts[i-1])
-                strr += f'''
-                          <testcase testtype="0" useasexample="1" hiderestiffail="0" mark="1.0000000" >
-                          <testcode>'''
+
                 if tmpppin.strip() != '' or tmpppout.strip() != '':
+                    strr += f'''<testcase testtype="0" useasexample="1" hiderestiffail="0" mark="1.0000000" >
+                                <testcode>'''
                     strr += f'''<text>Sample Test Case {i}</text>'''
-                strr += f'''
-                          </testcode>
-                          <stdin>
-                                    <text>{tmpppin}</text>
-                          </stdin>
-                          <expected>
-                                    <text>{tmpppout}</text>
-                          </expected>
-                          <extra>
-                                    <text></text>
-                          </extra>
-                          <display>
-                                    <text>SHOW</text>
-                          </display>
-                        </testcase>
-                                '''
+                    strr += f'''
+                              </testcode>
+                              <stdin>
+                                        <text>{tmpppin}</text>
+                              </stdin>
+                              <expected>
+                                        <text>{tmpppout}</text>
+                              </expected>
+                              <extra>
+                                        <text></text>
+                              </extra>
+                              <display>
+                                        <text>SHOW</text>
+                              </display>
+                            </testcase>
+                                    '''
             for i in range(len(inputs)):
                 strr += f'''
                 <testcase testtype="0" useasexample="0" hiderestiffail="1" mark="1.0000000" >
