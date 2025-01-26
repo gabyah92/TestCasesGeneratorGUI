@@ -1,3 +1,4 @@
+import re
 import time
 import math
 import random
@@ -7,14 +8,13 @@ import timeit
 import webbrowser
 import zipfile
 import subprocess
-from io import StringIO
 from PIL import Image
-from tc_generator.lang_compiler import LANGS
+from lang_compiler import LANGS
 import customtkinter as ctk
+import tkinter as tk
 import os
 import threading
 from datetime import datetime
-
 
 code = str()
 language_value = 1
@@ -79,19 +79,266 @@ ctk.set_appearance_mode("dark")  # Modes: "System" (default), "Light", "Dark"
 ctk.set_default_color_theme("dark-blue")  # Customize color theme
 
 
+class PythonCodeEditor(ctk.CTkTextbox):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Configure tags for syntax highlighting
+        #self.tag_config("keyword", foreground="#FF7F50")  # Coral color for keywords
+        self.tag_config("string", foreground="#98FB98")  # Pale green for strings
+        self.tag_config("comment", foreground="#D3D3D3")  # Light grey for comments
+
+        self.keyword_colors = {
+            "light_blue": "#ADD8E6",
+            "light_green": "#90EE90",
+            "light_orange": "#FFD580",
+            "light_coral": "#F08080",
+            "light_pink": "#FFB6C1",
+            "light_yellow": "#FFFFE0",
+            "light_cyan": "#E0FFFF",
+            "light_salmon": "#FFA07A",
+            "light_lavender": "#E6E6FA",
+            "light_khaki": "#F0E68C",
+            "light_turquoise": "#AFEEEE",
+            "light_peach": "#FFDAB9",
+            "light_mint": "#98FB98",
+            "light_sky_blue": "#87CEFA",
+            "light_tan": "#D2B48C",
+            "light_apricot": "#FFE4B5",
+            "light_lilac": "#C8A2C8",
+            "light_mauve": "#D8BFD8",
+            "light_honeydew": "#F0FFF0",
+            "light_azure": "#F0FFFF",
+            "light_lemon": "#FFFACD",
+            "light_rose": "#FFE4E1",
+            "light_thistle": "#D8BFD8",
+            "light_periwinkle": "#CCCCFF"
+        }
+
+        self.keywords = [
+            # Java-specific keywords and terms not in Python
+            'abstract', 'boolean', 'byte', 'case', 'catch', 'char', 'const', 'default', 'do',
+            'double', 'enum', 'extends', 'final', 'float', 'goto', 'implements', 'instanceof',
+            'int', 'interface', 'long', 'native', 'new', 'package', 'private', 'protected',
+            'public', 'short', 'static', 'strictfp', 'super', 'switch', 'synchronized', 'this',
+            'throw', 'throws', 'transient', 'void', 'volatile',
+
+            # Common Java terms not in Python
+            'String', 'System', 'out', 'println', 'main', 'args', 'null', 'true', 'false',
+            'ArrayList', 'HashMap', 'LinkedList', 'TreeMap', 'Vector', 'Iterator', 'Comparable',
+            'Cloneable', 'Runnable', 'Thread', 'Exception', 'RuntimeException', 'Override',
+            'Deprecated', 'SuppressWarnings', 'Annotation', 'FunctionalInterface',
+
+            # Java access modifiers and other common terms
+            'public', 'private', 'protected', 'default', 'static', 'final', 'abstract',
+            'synchronized',
+            'volatile', 'transient', 'native', 'strictfp',
+
+            # Java control flow
+            'if', 'else', 'switch', 'case', 'default', 'for', 'do', 'while', 'break', 'continue',
+            'return', 'try', 'catch', 'finally', 'throw', 'throws',
+
+            # Java OOP terms
+            'class', 'interface', 'extends', 'implements', 'package', 'import',
+
+            # Java primitive types
+            'byte', 'short', 'int', 'long', 'float', 'double', 'boolean', 'char',
+
+            # Common Java classes and interfaces
+            'Object', 'String', 'StringBuffer', 'StringBuilder', 'Math', 'Integer', 'Double',
+            'Boolean', 'Character', 'Byte', 'Short', 'Long', 'Float', 'Number', 'Arrays',
+            'Collections', 'List', 'Set', 'Map', 'Queue', 'Deque', 'Stack',
+
+            # Java exception handling
+            'try', 'catch', 'finally', 'throw', 'throws', 'Exception', 'RuntimeException',
+            'Error', 'Throwable',
+
+            # Java concurrency
+            'Thread', 'Runnable', 'Callable', 'synchronized', 'volatile', 'concurrent',
+
+            # Java I/O
+            'System', 'out', 'in', 'err', 'PrintStream', 'InputStream', 'OutputStream',
+            'Reader', 'Writer', 'File', 'IOException',
+
+            # Python keywords
+            'False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await', 'break',
+            'class', 'continue', 'def', 'del', 'elif', 'else', 'except', 'finally', 'for', 'from',
+            'global', 'if', 'import', 'in', 'is', 'lambda', 'nonlocal', 'not', 'or', 'pass',
+            'raise', 'return', 'try', 'while', 'with', 'yield',
+
+            # Built-in Functions
+            'abs', 'all', 'any', 'ascii', 'bin', 'bool', 'breakpoint', 'bytearray', 'bytes', 'callable',
+            'chr', 'classmethod', 'compile', 'complex', 'delattr', 'dict', 'dir', 'divmod', 'enumerate',
+            'eval', 'exec', 'filter', 'float', 'format', 'frozenset', 'getattr', 'globals', 'hasattr',
+            'hash', 'help', 'hex', 'id', 'input', 'int', 'isinstance', 'issubclass', 'iter', 'len',
+            'list', 'locals', 'map', 'max', 'memoryview', 'min', 'next', 'object', 'oct', 'open',
+            'ord', 'pow', 'print', 'property', 'range', 'repr', 'reversed', 'round', 'set', 'setattr',
+            'slice', 'sorted', 'staticmethod', 'str', 'sum', 'super', 'tuple', 'type', 'vars', 'zip',
+
+            # Built-in Constants
+            'NotImplemented', 'Ellipsis', '__debug__',
+
+            # Built-in Types
+            'bool', 'bytearray', 'bytes', 'classmethod', 'complex', 'dict', 'float', 'frozenset',
+            'int', 'list', 'object', 'property', 'range', 'set', 'slice', 'staticmethod', 'str', 'tuple', 'type',
+
+            # String Methods
+            'capitalize', 'casefold', 'center', 'count', 'encode', 'endswith', 'expandtabs', 'find',
+            'format', 'format_map', 'index', 'isalnum', 'isalpha', 'isascii', 'isdecimal', 'isdigit',
+            'isidentifier', 'islower', 'isnumeric', 'isprintable', 'isspace', 'istitle', 'isupper',
+            'join', 'ljust', 'lower', 'lstrip', 'maketrans', 'partition', 'replace', 'rfind', 'rindex',
+            'rjust', 'rpartition', 'rsplit', 'rstrip', 'split', 'splitlines', 'startswith', 'strip',
+            'swapcase', 'title', 'translate', 'upper', 'zfill',
+
+            # List/Dict/Set Methods
+            'append', 'clear', 'copy', 'count', 'extend', 'index', 'insert', 'pop', 'remove', 'reverse',
+            'sort', 'update', 'values', 'items', 'keys', 'get', 'add', 'discard', 'intersection',
+            'difference', 'union', 'symmetric_difference',
+
+            # File Methods
+            'close', 'flush', 'fileno', 'isatty', 'read', 'readable', 'readline', 'readlines', 'seek',
+            'seekable', 'tell', 'truncate', 'write', 'writable', 'writelines',
+
+            # Numeric Types Methods
+            'conjugate', 'fromhex', 'hex', 'imag', 'real',
+
+            # Exception Handling
+            'ArithmeticError', 'AssertionError', 'AttributeError', 'BaseException', 'BlockingIOError',
+            'BrokenPipeError', 'BufferError', 'BytesWarning', 'ChildProcessError', 'ConnectionAbortedError',
+            'ConnectionError', 'ConnectionRefusedError', 'ConnectionResetError', 'DeprecationWarning',
+            'EOFError', 'EnvironmentError', 'Exception', 'FileExistsError', 'FileNotFoundError',
+            'FloatingPointError', 'FutureWarning', 'GeneratorExit', 'IOError', 'ImportError',
+            'ImportWarning', 'IndentationError', 'IndexError', 'InterruptedError', 'IsADirectoryError',
+            'KeyError', 'KeyboardInterrupt', 'LookupError', 'MemoryError', 'ModuleNotFoundError',
+            'NameError', 'NotADirectoryError', 'NotImplementedError', 'OSError', 'OverflowError',
+            'PendingDeprecationWarning', 'PermissionError', 'ProcessLookupError', 'RecursionError',
+            'ReferenceError', 'ResourceWarning', 'RuntimeError', 'RuntimeWarning', 'StopAsyncIteration',
+            'StopIteration', 'SyntaxError', 'SyntaxWarning', 'SystemError', 'SystemExit', 'TabError',
+            'TimeoutError', 'TypeError', 'UnboundLocalError', 'UnicodeDecodeError', 'UnicodeEncodeError',
+            'UnicodeError', 'UnicodeTranslateError', 'UnicodeWarning', 'UserWarning', 'ValueError',
+            'Warning', 'ZeroDivisionError',
+
+            # Additional Built-in Functions and Types
+            'copyright', 'credits', 'license', 'StringIO', 'TextIOWrapper', 'match', 'case'
+        ]
+
+        # Assign random colors to keywords
+        self.keyword_color_map = {}
+        for keyword in self.keywords:
+            color = random.choice(list(self.keyword_colors.values()))
+            self.keyword_color_map[keyword] = color
+            self.tag_config(keyword, foreground=color)
+
+        self.bind("<KeyRelease>", self.highlight_syntax)
+        self.bind("<Return>", self.handle_return)
+        self.bind("<Tab>", self.handle_tab)
+        self.bind("(", lambda event: self.auto_close(event, "(", "()"))
+        self.bind("[", lambda event: self.auto_close(event, "[", "[]"))
+        self.bind("{", lambda event: self.auto_close(event, "{", "{}"))
+        self.bind("<less>", lambda event: self.auto_close(event, "<", "<>"))
+        self.bind("\"", lambda event: self.auto_close(event, '\"', "\"\""))
+        self.bind("'", lambda event: self.auto_close(event, "'", "''"))
+
+    def highlight_syntax(self, event=None):
+        content = self.get("1.0", tk.END)
+        for tag in ["keyword", "string", "comment"]:
+            self.tag_remove(tag, "1.0", tk.END)
+
+        for keyword in self.keywords:
+            self.tag_remove(keyword, "1.0", tk.END)
+
+        for keyword, color in self.keyword_color_map.items():
+            start_index = "1.0"
+            while True:
+                start_index = self.search(r'\y' + keyword + r'\y', start_index, tk.END, regexp=True)
+                if not start_index:
+                    break
+                end_index = f"{start_index}+{len(keyword)}c"
+                self.tag_add(keyword, start_index, end_index)
+                start_index = end_index
+
+        # Highlight strings
+        for match in re.finditer(r'(".*?"|\'.*?\')', content):
+            start, end = match.span()
+            self.tag_add("string", f"1.0+{start}c", f"1.0+{end}c")
+
+        # Highlight comments
+        for match in re.finditer(r'(#.*$)', content, re.MULTILINE):
+            start, end = match.span()
+            self.tag_add("comment", f"1.0+{start}c", f"1.0+{end}c")
+
+    def handle_return(self, event):
+        cursor_pos = self.index(tk.INSERT)
+        line_start = self.index(f"{cursor_pos} linestart")
+        line = self.get(line_start, cursor_pos)
+
+        # Check if cursor is between curly braces
+        if self.get(f"{cursor_pos}-1c") == "{" and self.get(cursor_pos) == "}":
+            indent = self.get_indent(line)
+            self.insert(tk.INSERT, f"\n{indent}    \n{indent}")
+            self.mark_set(tk.INSERT, f"{self.index(tk.INSERT)}-{len(indent) + 1}c")
+            return "break"
+
+        # Check if cursor is between box braces
+        if self.get(f"{cursor_pos}-1c") == "[" and self.get(cursor_pos) == "]":
+            indent = self.get_indent(line)
+            self.insert(tk.INSERT, f"\n{indent}    \n{indent}")
+            self.mark_set(tk.INSERT, f"{self.index(tk.INSERT)}-{len(indent) + 1}c")
+            return "break"
+
+        # Check if cursor is between round braces
+        if self.get(f"{cursor_pos}-1c") == "(" and self.get(cursor_pos) == ")":
+            indent = self.get_indent(line)
+            self.insert(tk.INSERT, f"\n{indent}    \n{indent}")
+            self.mark_set(tk.INSERT, f"{self.index(tk.INSERT)}-{len(indent) + 1}c")
+            return "break"
+
+        # Check if cursor is between box braces
+        if self.get(f"{cursor_pos}-1c") == "<" and self.get(cursor_pos) == ">":
+            indent = self.get_indent(line)
+            self.insert(tk.INSERT, f"\n{indent}    \n{indent}")
+            self.mark_set(tk.INSERT, f"{self.index(tk.INSERT)}-{len(indent) + 1}c")
+            return "break"
+
+
+        # Normal indentation for other cases
+        indent = self.get_indent(line)
+        if line.strip().endswith(":"):
+            indent += "    "
+
+        self.insert(tk.INSERT, f"\n{indent}")
+        return "break"
+
+    def get_indent(self, line):
+        return line[:len(line) - len(line.lstrip())]
+
+    def handle_tab(self, event):
+        self.insert(tk.INSERT, "    ")
+        return "break"
+
+    def handle_curly_brace(self, event):
+        self.insert(tk.INSERT, "{}")
+        self.mark_set(tk.INSERT, f"{tk.INSERT}-1c")
+        return "break"
+
+    def auto_close(self, event, opening, closing):
+        self.insert(tk.INSERT, closing)
+        self.mark_set(tk.INSERT, f"{tk.INSERT}-1c")
+        return "break"
+
 # Python Code Input
 ctk.CTkLabel(app, text_color='orange', text="Python Code", font=("sans", 25, "bold"),
              anchor="center").grid(row=0, column=1, padx=20, pady=10)
-python_code_entry = ctk.CTkTextbox(app, width=300, height=200, font=("sans", 20, "bold"),
-                                   wrap='none')
+python_code_entry = PythonCodeEditor(app, width=300, height=200, font=("sans", 25, "bold"),
+                                     wrap='none')
 python_code_entry.grid(row=1, column=1, padx=20, pady=10, sticky="nsew")
 
 # Logic Code Input
 ctk.CTkLabel(app, text_color='orange', text="Logic Code", font=("sans", 25, "bold"),
              anchor="center").grid(row=0, column=0, padx=20, pady=10)
-logic_code_entry = ctk.CTkTextbox(app, width=300, height=200, font=("sans", 20, "bold"),
-                                  wrap='none')
-logic_code_entry.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
+logic_code_entry = PythonCodeEditor(app, width=300, height=200, font=("sans", 25, "bold"),
+                          wrap='none' )
+logic_code_entry.grid(row=1,  column=0, padx=20, pady=10, sticky="nsew")
 
 # Language selection dropdown
 ctk.CTkLabel(app, text="Logic Code Language: ", font=("sans", 30, "bold")).grid(row=2, column=0,
@@ -285,8 +532,10 @@ def get_program_details():
             for i in loop.splitlines():
                 constraints += f'<p>{i}</p>'
             constraints += "\n\n"
-            description = "<h2>Problem Statement:</h2>\n\n" + "<p>" + descriptioninp.get("1.0",
-                                                                                         "end-1c") + "</p>\n\n"
+            description = "<h2>Problem Statement:</h2>\n\n" + "<p>"
+            for line in str(descriptioninp.get("1.0", "end-1c")).splitlines():
+                description += '<p>'+line+'</p>'
+            description += "</p>\n\n"
             if progtype.get() == 'multilanguage':
                 program_type = 1
             else:
@@ -475,7 +724,7 @@ def logic_code():
             "Go": ".go"
         }.get(language)
 
-        file_name = f"_internal\\tc_generator\\logic{file_extension}"
+        file_name = f"logic{file_extension}"
         with open(file_name, 'w') as f:
             f.write(code)
     except:
