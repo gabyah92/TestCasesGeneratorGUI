@@ -408,12 +408,32 @@ def description_make():
     if tin1 != "" or tin2 != "" or tin3 != "" or tout1 != "" or tout2 != "" or tout3 != "":
         description += "<h2>Sample TestCases:</h2>\n\n"
     if tout1 != "" or tin1 != "":
-        description += "<b>Sample Input 1:</b>\n<p>"+tin1+"</p>\n<b>Sample Output 1:</b>\n<p>"+tout1+"</p>\n\n"
+        description += "<b>Sample Input 1:</b>\n<p>"
+        for i in tin1.splitlines():
+            description += f'<p>{i}</p>'
+        description += "</p>\n<b>Sample Output 1:</b>\n<p>"
+        for i in tout1.splitlines():
+            description += f'<p>{i}</p>'
+        description += "\n\n"
     if tout2 != "" or tin2 != "":
-        description += "<b>Sample Input 2:</b>\n<p>" + tin2 + "</p>\n<b>Sample Output 2:</b>\n<p>" + tout2 + "</p>\n\n"
+        description += "<b>Sample Input 2:</b>\n<p>"
+        for i in tin2.splitlines():
+            description += f'<p>{i}</p>'
+        description += "</p>\n<b>Sample Output 2:</b>\n<p>"
+        for i in tout2.splitlines():
+            description += f'<p>{i}</p>'
+        description += "\n\n"
     if tout3 != "" or tin3 != "":
-        description += "<b>Sample Input 3:</b>\n<p>" + tin3 + "</p>\n<b>Sample Output 3:</b>\n<p>" + tout3 + "</p>\n\n"
-    description += "</p>"+constraints
+        description += "<b>Sample Input 3:</b>\n<p>"
+        for i in tin3.splitlines():
+            description += f'<p>{i}</p>'
+        description += "</p>\n<b>Sample Output 3:</b>\n<p>"
+        for i in tout3.splitlines():
+            description += f'<p>{i}</p>'
+        description += "\n\n"
+    description += "</p>"
+    for i in constraints.splitlines():
+        description += f'<p>{i}</p>'
 
 def get_program_details():
     global program_name, firstchk, entry
@@ -1189,11 +1209,10 @@ def zip_them(test_files, lang_choice, pltfrm_choice):
         <name>
           <text>'''
             strr += program_name
-            strr += f'''</text>
+            strr += '''</text>
         </name>
-        <questiontext format="html"><text><![CDATA[{description}]]></text></questiontext>
+        <questiontext format="html"><text><![CDATA[<h1>'''+program_name+'''</h1><br><br>\n\n\n'''+description+''']]></text></questiontext>
         <generalfeedback format="html">
-          <text></text>
         </generalfeedback>
         <defaultgrade>20</defaultgrade>
         <penalty>0</penalty>
